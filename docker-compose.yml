@@ -1,6 +1,6 @@
 services:
   app:
-    container_name: app_local
+    container_name: driveo_app_local
     build:
       dockerfile: ./docker/app/Dockerfile
     ports:
@@ -15,7 +15,7 @@ services:
       - redis
 
   nginx:
-    container_name: nginx_local
+    container_name: driveo_nginx_local
     tty: true
     build:
       dockerfile: ./docker/nginx/Dockerfile
@@ -29,7 +29,7 @@ services:
       - laravel-production
 
   db:
-    container_name: db_local
+    container_name: driveo_db_local
     image: postgres:16
     restart: unless-stopped
     shm_size: '1gb'
@@ -45,7 +45,7 @@ services:
       - laravel-production
 
   redis:
-    container_name: redis_local
+    container_name: driveo_redis_local
     image: redis
     ports:
       - "6379:6379"
