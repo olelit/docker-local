@@ -37,9 +37,6 @@ ARG GROUP_ID=1000
 RUN groupadd -g ${GROUP_ID} hostgroup \
     && useradd -u ${USER_ID} -g hostgroup -m -s /bin/bash hostuser
 
-RUN pecl install xdebug \
-    && docker-php-ext-enable xdebug
-
 COPY docker/app/php.ini /usr/local/etc/php/conf.d/php.ini
 
 WORKDIR /var/www
