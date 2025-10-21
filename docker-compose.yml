@@ -32,7 +32,7 @@ services:
     container_name: driveo_db_local
     image: postgres:16
     restart: unless-stopped
-    shm_size: '1gb'
+    shm_size: '2gb'
     ports:
       - "5432:5432"
     environment:
