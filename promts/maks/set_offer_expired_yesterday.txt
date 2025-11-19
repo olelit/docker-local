@@ -1,0 +1,15 @@
+В PostgreSQL (production) нужно обновить все офферы, относящиеся к конкретному vehicle_id, чтобы они считались просроченными.
+
+1. Найди все записи в таблице purchase_offers, у которых vehicle_id = <VEHICLE_ID>.
+2. Для каждой записи установи:
+   expire_at = текущая дата минус 1 день (вчерашняя дата),
+   сохранив оригинальное время (часы, минуты, секунды).
+3. created_at менять не нужно.
+4. Обновление нужно сделать для всех офферов этой машины, независимо от is_current.
+5. Используется PostgreSQL.
+
+Пример SQL:
+
+UPDATE purchase_offers
+SET expire_at = (date (now() - interval '1 day')) + (expire_at::time)
+WHERE vehicle_id = <VEHICLE_ID>;

@@ -1,0 +1,35 @@
+В PostgreSQL (stage) нужно обновить данные для машин с указанными id (например: 3012, 3011).
+
+1. Таблица purchase_offers:
+   - Для записей, где is_current = true:
+     created_at = 2025-09-30 (с сохранением времени)
+     expire_at  = 2025-10-10 (с сохранением времени)
+   - Для записей, где is_current = false:
+     created_at = 2025-09-30 (с сохранением времени)
+     expire_at  = 2025-10-30 (с сохранением времени)
+
+2. Таблица vehicle_quotes:
+   - Для указанных vehicle_id установить created_at = 2025-09-30 (с сохранением времени)
+
+3. Таблица vehicles:
+   - Для указанных id установить created_at = 2025-09-30 (с сохранением времени)
+
+Пример SQL:
+
+UPDATE purchase_offers
+SET created_at = date '2025-09-30' + (created_at::time),
+    expire_at  = date '2025-10-10' + (expire_at::time)
+WHERE vehicle_id IN (<IDs>) AND is_current = true;
+
+UPDATE purchase_offers
+SET created_at = date '2025-09-30' + (created_at::time),
+    expire_at  = date '2025-10-30' + (expire_at::time)
+WHERE vehicle_id IN (<IDs>) AND is_current = false;
+
+UPDATE vehicle_quotes
+SET created_at = date '2025-09-30' + (created_at::time)
+WHERE vehicle_id IN (<IDs>);
+
+UPDATE vehicles
+SET created_at = date '2025-09-30' + (created_at::time)
+WHERE id IN (<IDs>);
