@@ -169,11 +169,11 @@ This ensures strict type checking is enabled for the entire file, catching type 
 
 ```php
 // ❌ BAD - hardcoded string
-if ($config === 'is_cron_should_run_every_ten_min') { }
+if ($config === 'some_config_key') { }
 
 // ✅ GOOD - string constant
-private const IS_CRON_SHOULD_RUN_EVERY_TEN_MIN = 'is_cron_should_run_every_ten_min';
-if ($config === self::IS_CRON_SHOULD_RUN_EVERY_TEN_MIN) { }
+private const CONFIG_KEY_NAME = 'some_config_key';
+if ($config === self::CONFIG_KEY_NAME) { }
 ```
 
 This rule is MANDATORY for all configuration keys, database column names, and magic strings.
@@ -184,12 +184,12 @@ This rule is MANDATORY for all configuration keys, database column names, and ma
 ```php
 // ❌ BAD - loose null check, doesn't verify type
 if ($filter !== null) {
-    $filter->doSomething();
+    $filter->process();
 }
 
 // ✅ GOOD - verifies both non-null AND correct type
-if ($filter instanceof AppraisalStudioFilter) {
-    $filter->doSomething();
+if ($filter instanceof FilterInterface) {
+    $filter->process();
 }
 ```
 
@@ -232,12 +232,12 @@ Comments are NOT needed for:
 
 ```php
 // ❌ BAD - verbose function syntax
-$filters->map(function ($filter) {
-    return ['id' => $filter->id, 'name' => $filter->name];
+$items->map(function (Item $item) {
+    return ['id' => $item->id, 'name' => $item->name];
 });
 
 // ✅ GOOD - concise arrow function
-$filters->map(fn ($filter) => ['id' => $filter->id, 'name' => $filter->name]);
+$items->map(fn (Item $item) => ['id' => $item->id, 'name' => $item->name]);
 ```
 
 Use `function` only when:
@@ -250,13 +250,13 @@ Use `function` only when:
 
 ```php
 // ❌ BAD - generic $query doesn't tell what we're building
-->where(function ($query) {
+->where(function (Builder $query) {
     $query->where('status', 'active')
           ->orWhere('status', 'pending');
 })
 
 // ✅ GOOD - $statusB clearly indicates this builder handles status conditions
-->where(fn ($statusB) => $statusB
+->where(fn (Builder $statusB) => $statusB
     ->where('status', 'active')
     ->orWhere('status', 'pending')
 )
@@ -444,24 +444,24 @@ All database queries must be stored in repository classes. Controllers and servi
 
 ```php
 // Good: Query in repository
-class UserRepository
+class ProductRepository
 {
-    public function findById(int $id): ?UserDto
+    public function findById(int $id): ?ProductDto
     {
-        $result = DB::table('users')
+        $result = DB::table('products')
             ->where('id', $id)
             ->first();
             
-        return $result ? UserDto::fromArray((array) $result) : null;
+        return $result ? ProductDto::fromArray((array) $result) : null;
     }
 }
 
 // Bad: Query in controller
-class UserController extends Controller
+class ProductController extends Controller
 {
-    public function show($id)
+    public function show(int $id): void
     {
-        $user = User::find($id); // Don't do this
+        $product = Product::find($id); // Don't do this
     }
 }
 ```
@@ -471,33 +471,33 @@ class UserController extends Controller
 
 ```php
 // PREFERRED: JOIN with DTO
-class OrderRepository
+class InvoiceRepository
 {
-    public function getOrdersWithUser(): array
+    public function getInvoicesWithCustomer(): array
     {
-        $results = DB::table('orders')
-            ->join('users', 'orders.user_id', '=', 'users.id')
-            ->select('orders.*', 'users.name as user_name', 'users.email as user_email')
+        $results = DB::table('invoices')
+            ->join('customers', 'invoices.customer_id', '=', 'customers.id')
+            ->select('invoices.*', 'customers.name as customer_name', 'customers.email as customer_email')
             ->get();
             
-        return $results->map(fn($row) => OrderWithUserDto::fromArray((array) $row))->toArray();
+        return $results->map(fn(object $row) => InvoiceWithCustomerDto::fromArray((array) $row))->toArray();
     }
 }
 
 // AVOID: Eloquent with() when performance matters
-Order::with('user')->get(); // Use only for simple cases
+Invoice::with('customer')->get(); // Use only for simple cases
 ```
 
 ### DTO Usage
 Always use DTOs for data transfer between layers:
 
 ```php
-class UserDto
+class ProductDto
 {
     public function __construct(
         private readonly int $id,
         private readonly string $name,
-        private readonly string $email,
+        private readonly float $price,
     ) {}
 
     public function getId(): int
@@ -510,9 +510,9 @@ class UserDto
         return $this->name;
     }
 
-    public function getEmail(): string
+    public function getPrice(): float
     {
-        return $this->email;
+        return $this->price;
     }
 
     public static function fromArray(array $data): self
@@ -520,7 +520,7 @@ class UserDto
         return new self(
             id: $data['id'],
             name: $data['name'],
-            email: $data['email'],
+            price: $data['price'],
         );
     }
 }
@@ -569,7 +569,7 @@ use Carbon\Carbon;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
-class User extends Model
+class Product extends Model
 ```
 
 #### Mass Assignment
@@ -578,13 +578,13 @@ class User extends Model
 
 ```php
 // Bad - using fillable
-$user = User::create($request->all());
+$product = Product::create($request->all());
 
 // Good - manual assignment
-$user = new User();
-$user->name = $request->input('name');
-$user->email = $request->input('email');
-$user->save();
+$product = new Product();
+$product->name = $request->input('name');
+$product->price = $request->input('price');
+$product->save();
 ```
 
 #### Model Configuration
@@ -593,7 +593,7 @@ $user->save();
 - Keep models minimal and focused
 
 ```php
-class DeveloperSetting extends Model
+class Configuration extends Model
 {
     protected $primaryKey = 'key';
     protected $keyType = 'string';
@@ -605,7 +605,7 @@ class DeveloperSetting extends Model
 - Use eager loading to avoid N+1 queries only for simple cases:
   ```php
   // Acceptable for simple relationships
-  $users = User::with('posts')->get();
+  $products = Product::with('category')->get();
   ```
 - For complex data, use Repository with JOINs and DTOs
 - Use query scopes for reusable query logic (inside repositories only)
@@ -648,8 +648,8 @@ class DeveloperSetting extends Model
 ### Performance Optimization
 - Use caching for frequently accessed data:
   ```bash
-  $users = Cache::remember('users', 3600, function () {
-      return User::all();
+  $products = Cache::remember('products', 3600, function () {
+      return Product::all();
   });
   ```
 - Use queue jobs for heavy operations
