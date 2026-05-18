@@ -1,0 +1,59 @@
+services:
+  app:
+    container_name: driveo_app_local
+    build:
+      dockerfile: ./docker/app/Dockerfile
+    ports:
+      - "9000:9000"
+      - "6006:6006"
+    volumes:
+      - ./src:/var/www
+    networks:
+      - laravel-production
+    depends_on:
+      - db
+      - redis
+
+  nginx:
+    container_name: driveo_nginx_local
+    tty: true
+    build:
+      dockerfile: ./docker/nginx/Dockerfile
+    volumes:
+      - ./src:/var/www
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+    networks:
+      - laravel-production
+
+  db:
+    container_name: driveo_db_local
+    image: postgres:16
+    restart: unless-stopped
+    shm_size: '2gb'
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=${DB_DATABASE}
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - laravel-production
+
+  redis:
+    container_name: driveo_redis_local
+    image: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - laravel-production
+
+networks:
+  laravel-production:
+
+volumes:
+  pgdata:
